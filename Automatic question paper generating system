@@ -1,0 +1,78 @@
+database_conector.py
+import mysql.connector
+from mysql.connector import Error
+
+def get_connection():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            database='yourdatabase',
+            user='yourusername',
+            password='yourpassword'
+        )
+        if connection.is_connected():
+            return connection
+    except Error as e:
+        print(f"Error: {e}")
+        return None
+question_generator.py
+import random
+from database_connector import get_connection
+
+def generate_questions(difficulty, subject, topic, number_of_questions):
+    questions = []
+    query = """
+        SELECT question_text
+        FROM questions
+        WHERE difficulty = %s AND subject = %s AND topic = %s
+    """
+    
+    try:
+        connection = get_connection()
+        if connection:
+            cursor = connection.cursor()
+            cursor.execute(query, (difficulty, subject, topic))
+            results = cursor.fetchall()
+            
+            for row in results:
+                questions.append(row[0])
+            
+            random.shuffle(questions)
+            if len(questions) > number_of_questions:
+                questions = questions[:number_of_questions]
+    
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        if connection and connection.is_connected():
+            connection.close()
+    
+    return questions
+
+if __name__ == "__main__":
+    difficulty = 'Medium'
+    subject = 'Math'
+    topic = 'Algebra'
+    number_of_questions = 5
+    
+    questions = generate_questions(difficulty, subject, topic, number_of_questions)
+    for idx, question in enumerate(questions, start=1):
+        print(f"Q{idx}: {question}")
+
+database_schema
+-- Create the 'questions' table
+CREATE TABLE IF NOT EXISTS questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_text TEXT NOT NULL,
+    difficulty VARCHAR(20),
+    subject VARCHAR(50),
+    topic VARCHAR(50)
+);
+
+-- Insert some sample data into the 'questions' table
+INSERT INTO questions (question_text, difficulty, subject, topic) VALUES
+('What is the quadratic formula?', 'Medium', 'Math', 'Algebra'),
+('Explain the theory of relativity.', 'Hard', 'Physics', 'Relativity'),
+('What is the capital of France?', 'Easy', 'Geography', 'Europe');
+
+
